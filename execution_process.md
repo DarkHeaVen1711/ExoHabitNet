@@ -1,7 +1,94 @@
 # ExoHabitNet — Step-by-Step Execution Process
 **Exoplanet Habitability Classification via NASA Kepler Light-Curve Analysis**
 
-> **Project:** ExoHabitNet | **Course:** ECSCI24305 | **Date:** March 2026
+> **Project:** ExoHabitNet | **Course:** ECSCI24305 | **Date:** March 2026  
+> **Version:** 2.0 | **Last Updated:** March 10, 2026
+
+---
+
+## 📝 Project Updates & Change Log
+
+### **Update 2.0 (March 10, 2026)**
+
+#### Repository Structure Changes
+- ✅ **Main branch:** Kept clean with only documentation (`execution_process.md`, `.gitignore`)
+- ✅ **Preprocess branch:** Contains all ExoHabitNet implementation code and documentation
+- ✅ **Collaborator-friendly:** Data files excluded from Git; collaborators download independently from NASA
+
+#### New Files Created (in `preprocess` branch)
+1. **Scripts:**
+   - `exohabitnet/scripts/collect_kepler_data.py` — Automated NASA MAST API data collection
+   - `exohabitnet/scripts/preprocessing_pipeline.py` — Light curve cleaning, normalization, phase-folding
+   - `exohabitnet/scripts/balance_dataset.py` — Advanced class imbalance solutions (SMOTE, augmentation)
+   - `exohabitnet/scripts/test_api.py` — NASA API connectivity test
+
+2. **Documentation:**
+   - `exohabitnet/docs/dataset_architecture.md` — Feature definitions, HZ model, labeling schema
+   - `exohabitnet/docs/class_imbalance_solutions.md` — Comprehensive balancing strategies
+   - `exohabitnet/README.md` — Project overview and quick start guide
+   - `README.md` (root) — Collaborator onboarding guide
+
+3. **Configuration:**
+   - `exohabitnet/requirements.txt` — All Python dependencies
+   - `exohabitnet/data/data_collection_log_template.csv` — Log template
+
+#### Class Imbalance Solutions Implemented
+**Problem:** HABITABLE class severely underrepresented (7 samples = 1.5% of dataset)
+
+**Solutions Applied:**
+1. **Relaxed HZ Criteria:** 
+   - HZ boundaries: ±30% → ±50% buffer
+   - Planet size threshold: 2.5 R⊕ → 3.0 R⊕
+   - Expected increase: 7 → 15-30 HABITABLE samples
+
+2. **Advanced Augmentation:**
+   - Gaussian noise injection (σ=0.008-0.015)
+   - Time shifting (±30 to ±80 timesteps)
+   - SMOTE-like interpolation between samples
+   - Amplitude scaling (±3%)
+   - Target: 200-250 HABITABLE samples after augmentation
+
+3. **Three Balancing Strategies:**
+   - **Conservative:** 150 HAB / 229 NH / 217 FP (25% / 38% / 37%)
+   - **Moderate:** 200 HAB / 220 NH / 200 FP (32% / 36% / 32%) ⭐ Recommended
+   - **Aggressive:** 250 HAB / 200 NH / 200 FP (38% / 31% / 31%)
+
+4. **Class-Weighted Loss:** Computed inverse-frequency weights for PyTorch training
+
+#### .gitignore Strategy
+**Ignored (not pushed to Git):**
+- Large NASA data files (`raw_fits/`, `processed_dataset.csv`)
+- Generated reports and charts (`reports/`)
+- Trained model checkpoints (`models/checkpoints/`)
+- Collection logs (`data_collection_log.csv`, `logs/`)
+
+**Tracked (pushed to Git):**
+- All Python scripts (`scripts/*.py`)
+- All documentation (`docs/*.md`)
+- Model architecture code (`models/*.py`)
+- Configuration files (`requirements.txt`, `config/*.yaml`)
+- Template files (`data_collection_log_template.csv`)
+
+#### How to Access the Implementation
+```bash
+# Clone repository
+git clone https://github.com/DarkHeaVen1711/ExoHabitNet.git
+cd ExoHabitNet
+
+# Switch to preprocess branch (contains all code)
+git checkout preprocess
+
+# Install dependencies
+cd exohabitnet
+pip install -r requirements.txt
+
+# Download NASA data (each collaborator does this independently)
+python scripts/collect_kepler_data.py
+
+# Run preprocessing and balancing
+python scripts/preprocessing_pipeline.py
+python scripts/balance_dataset.py --strategy moderate
+```
 
 ---
 
