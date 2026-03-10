@@ -485,14 +485,23 @@ def main():
     # Process each sample
     processed_results = []
     for _, row in success_df.iterrows():
-        kid    = int(row["kic_id"])
+        kid    = int(row["kepid"])
         label  = str(row["label"])
         period = 1.0
         t0     = 0.0
 
         if koi_extra is not None and kid in koi_extra.index:
-            period = float(koi_extra.loc[kid, "koi_period"] or 1.0)
-            t0     = float(koi_extra.loc[kid, "koi_time0bk"] or 0.0)
+            koi_period = koi_extra.loc[kid, "koi_period"]
+            koi_t0 = koi_extra.loc[kid, "koi_time0bk"]
+            
+            # Handle case where kepid has multiple KOIs (returns Series)
+            if isinstance(koi_period, pd.Series):
+                koi_period = koi_period.iloc[0]
+            if isinstance(koi_t0, pd.Series):
+                koi_t0 = koi_t0.iloc[0]
+            
+            period = float(koi_period) if not pd.isna(koi_period) else 1.0
+            t0     = float(koi_t0) if not pd.isna(koi_t0) else 0.0
 
         result = preprocess_single(row["fits_path"], period, t0, label)
         if result:
