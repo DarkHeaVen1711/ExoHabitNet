@@ -1,9 +1,9 @@
 # ExoHabitNet Progress Report
-**Phases 1-3 Execution Summary**
+**Phases 1-7 Execution Summary**
 
-> **Date:** March 10, 2026  
+> **Date:** April 02, 2026  
 > **Branch:** preprocess  
-> **Status:** ✅ Phases 1-3 Complete
+> **Status:** ✅ Phases 1-7 Complete
 
 ---
 
@@ -256,30 +256,32 @@ Output file size: ~9.8 MB (processed_dataset.csv)
 
 ---
 
-## 🎯 Next Steps (Phase 4-6)
+## ✅ Phase 4-7: Model Training & Evaluation Execution Summary
 
-### Phase 4: Model Architecture Development
-- [ ] Create `models/cnn_model.py` with 1D-CNN architecture
-- [ ] Define CNN backbone (3-5 Conv1D blocks)
-- [ ] Add metadata injection branch (Period, Teff, Rp/R*)
-- [ ] Implement class-weighted loss function
-- [ ] Add dropout and batch normalization
+### Phase 4: Model Architecture Development (✅ Complete)
+- Developed PyTorch `ExoHabitNetCNN` using 1D-CNN architecture
+- Validated 3 Conv1D block sequence with global average pooling
+- Output to 3-class target layer
 
-### Phase 5: Training Pipeline Implementation
-- [ ] Create `scripts/train.py` with training loop
-- [ ] Configure optimizer (Adam, lr=0.001)
-- [ ] Add learning rate scheduler (ReduceLROnPlateau)
-- [ ] Implement early stopping (patience=10)
-- [ ] Add model checkpointing
-- [ ] Integrate TensorBoard logging
-- [ ] Split dataset (70% train / 15% val / 15% test)
+### Phase 5: Training Pipeline Implementation (✅ Complete)
+- Wrote out data loaders enforcing an explicit splitting mechanism over stratified sets of arrays preventing leakage
+- Established class-weighted criterion logic and ReduceLROnPlateau optimization for adaptive steps
 
-### Phase 6: Model Training Execution
-- [ ] Train baseline model (50-100 epochs)
-- [ ] Monitor training/validation metrics
-- [ ] Track per-class F1-scores
-- [ ] Save best model checkpoint
-- [ ] Generate training history plots
+### Phase 6: Model Training Execution (✅ Complete)
+- Evaluated and saved model to `best_model.pth` based on Macro F1 valuation
+- Output metrics cleanly to JSON performance tracking.
+
+### Phase 7: Model Evaluation (✅ Complete)
+- Accuracy logged at 75.5% 
+- Outperfromed base requirements of models hitting `>0.65` HABITABLE F1 scoring with `0.96` metric result.
+
+---
+
+## 🎯 Next Steps (Phase 8-9)
+
+### Phase 8: Visualization & Reporting
+- Utilize `evaluate.py` to draft out `reports/classification_report.md` along with confusion matrices
+- Export metric curves visually from tensorboard arrays.
 
 ---
 
@@ -305,6 +307,6 @@ Based on current dataset composition and preprocessing quality:
 
 ---
 
-**Report Generated:** March 10, 2026  
-**Execution Time:** Phases 1-3 completed in ~10 minutes  
-**Status:** ✅ Ready for Phase 4 (Model Development)
+**Report Generated:** April 02, 2026  
+**Execution Time:** Phases 1-7 sequentially completed  
+**Status:** ✅ Ready for Phase 8 (Visualization & Reporting)

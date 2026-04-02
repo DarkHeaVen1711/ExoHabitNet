@@ -8,9 +8,9 @@
 
 ## 🚀 Quick Start for Collaborators
 
-### Current Project Status (March 2026)
-**✅ Phases Completed:** 1-3 (Environment Setup → Data Collection → Preprocessing)  
-**🔄 Next Phase:** Model Architecture Design (1D-CNN implementation)  
+### Current Project Status (April 2026)
+**✅ Phases Completed:** 1-7 (Environment Setup → Preprocessing → Model Training → Evaluation)  
+**🔄 Next Phase:** Phase 8 (Visualization & Reporting) and Model Optimization  
 **📊 Dataset Ready:** 653 balanced samples (200 HABITABLE / 222 NON_HABITABLE / 231 FALSE_POSITIVE)
 
 **See [`execution_process.md`](execution_process.md) for detailed progress tracking.**
@@ -65,7 +65,7 @@ python scripts/preprocessing_pipeline.py
 ### Problem Statement
 Authenticate and classify exoplanet candidates from false positives using raw transit light-curve data.
 
-### What Has Been Executed (Phases 1-3)
+### What Has Been Executed (Phases 1-7)
 
 #### ✅ Phase 1: Environment Setup
 - Python 3.11.9 virtual environment configured
@@ -86,7 +86,27 @@ Authenticate and classify exoplanet candidates from false positives using raw tr
 - **Final Dataset:** 653 balanced samples (30.6% / 34.0% / 35.4%)
 - **Class Weights:** [1.0883, 0.9805, 0.9423] computed for PyTorch training
 
-**Result:** `data/processed_dataset.csv` ready for model training
+#### ✅ Phase 4: Model Architecture Development
+- Developed PyTorch `ExoHabitNetCNN` model
+- Implemented 1D-CNN with 3 Convolutional blocks, Batch Normalization, and Dropout
+- Global Average Pooling into a 3-class linear classifier
+
+#### ✅ Phase 5: Training Pipeline
+- Created a robust stratified data splitting mechanism (Train/Val/Test)
+- Overcame class imbalance with weighted CrossEntropyLoss
+- Implemented LR Scheduling (ReduceLROnPlateau) and Early Stopping
+
+#### ✅ Phase 6: Model Training
+- Trained on balanced 653 samples
+- Saved checkpoints for the best validation macro F1-score model
+- Maintained detailed TensorBoard logs of performance 
+
+#### ✅ Phase 7: Model Evaluation
+- Test accuracy of **75.5%** achieved.
+- Exceeded Habitable F1-Score targets reaching **0.96**.
+- Achieved **0.72** Macro F1-Score indicating robust handling of classes.
+
+**Result:** `models/checkpoints/best_model.pth` ready and detailed metrics saved to `reports/model_performance.json`.
 
 **For detailed metrics and verification results, see:**
 - [PROGRESS_REPORT.md](exohabitnet/PROGRESS_REPORT.md) — Comprehensive Phase 1-3 summary
@@ -301,10 +321,10 @@ pip install --upgrade lightkurve astropy pandas numpy
 
 | Metric | Target | Notes |
 |--------|--------|-------|
-| Overall Accuracy | ≥ 75% | Competitive with Kepler pipeline |
-| HABITABLE F1 | ≥ 0.65 | Most critical metric |
-| FALSE_POSITIVE Precision | ≥ 0.80 | Minimize false discoveries |
-| Macro F1 | ≥ 0.70 | Accounts for class imbalance |
+| Overall Accuracy | ≥ 75% | Target Achieved (75.5%) |
+| HABITABLE F1 | ≥ 0.65 | Target Achieved (0.96) |
+| FALSE_POSITIVE Precision | ≥ 0.80 | Model Achieved (0.75, requires tuning) |
+| Macro F1 | ≥ 0.70 | Target Achieved (0.72) |
 
 ---
 
@@ -321,8 +341,8 @@ pip install --upgrade lightkurve astropy pandas numpy
 
 **Project:** ExoHabitNet  
 **Course:** ECSCI24305  
-**Phase:** 2 & 3  
-**Last Updated:** March 10, 2026
+**Phase:** 1 - 7 Completed  
+**Last Updated:** April 02, 2026
 
 ---
 
