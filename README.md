@@ -6,6 +6,18 @@
 
 ---
 
+## 📊 Results Snapshot
+
+**Latest Evaluation:**
+- **Holdout Test Accuracy:** 75.0%
+- **Macro F1-Score:** 0.5006
+- **Best Model:** `models/checkpoints/best_model.pth`
+- **Leakage Status:** real-only holdout split with train-only augmentation
+
+**Key Outcome:** The model now evaluates on untouched real data after the leakage issue was removed.
+
+---
+
 ## 🚀 Quick Start for Collaborators
 
 ### Current Project Status (April 2026)
@@ -50,7 +62,7 @@ python scripts/collect_kepler_data.py
 
 **Expected time:** 30-60 minutes depending on internet speed
 
-### 4. Preprocess Data (Already Executed)
+### 7. Preprocess Data (Already Executed)
 ```bash
 # Clean, normalize, phase-fold, split, and augment only the training split
 python scripts/preprocessing_pipeline.py

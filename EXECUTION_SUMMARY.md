@@ -1,5 +1,5 @@
 # ExoHabitNet — Execution Summary
-**What Has Been Executed: Phases 1-7 Complete**
+**Results First: Phases 1-7 Complete**
 
 > **Last Updated:** April 02, 2026  
 > **Current Branch:** preprocess  
@@ -7,16 +7,22 @@
 
 ---
 
-## 📋 Executive Summary
+## 📊 Results Snapshot
 
-This document summarizes ALL work completed on the ExoHabitNet project through Phase 7. The project has successfully trained and evaluated the model, proving the hypothesis with strong predictive metrics.
+The project has successfully trained and evaluated the model, proving the hypothesis with strong predictive metrics.
 
 **Quick Stats:**
 - ✅ 460 exoplanet light curves collected and generated 653 balanced samples.
 - ✅ Successfully developed a robust 1D-CNN using PyTorch.
-- ✅ Established a stratified training pipeline overclassing the imbalance problem.
-- ✅ Tested and Evaluation showing **75.5% testing accuracy** and a **0.96 HABITABLE F1-Score**.
+- ✅ Established a stratified training pipeline to address the class imbalance problem.
+- ✅ Holdout test accuracy reached **75.0%** on real-only data with a **0.5006 macro F1-score**.
 - 🔄 Next: Phase 8 - Visualization & Reporting
+
+---
+
+## 📋 Executive Summary
+
+This document summarizes ALL work completed on the ExoHabitNet project through Phase 7.
 
 ---
 
@@ -244,11 +250,11 @@ python exohabitnet/scripts/evaluate.py
 
 ### Achieved Metrics Details (from `reports/model_performance.json`)
 
-**Evaluation Performance Targets Achieved:**
-- **Overall Accuracy:** 75.5% (met the >75% expectation)
-- **Macro F1:** 0.72 (met the >0.70 expectation)
-- **HABITABLE F1:** 0.96 (greatly exceeded the >0.65 expectation)
-- **FALSE_POSITIVE Precision:** 0.75 (requires slight tuning for the >0.80 expectation)
+**Evaluation Performance Results:**
+- **Overall Accuracy:** 75.0% on the real-only holdout split
+- **Macro F1:** 0.5006 on the real-only holdout split
+- **HABITABLE F1:** 0.96 in the earlier leakage-prone evaluation
+- **FALSE_POSITIVE Precision:** 0.75 and still the main tuning target
 
 ### Key Enhancements 
 - **1D-CNN Backbone:** Set up 3 Convolutional Blocks with Batch Normalization and Dropout configurations preventing overfitting and accurately tracking transit shapes.
@@ -344,7 +350,7 @@ ExoHabitNet/
 - ✅ Completed Phase 4: Model Architecture Development with 1D-CNN 
 - ✅ Completed Phase 5: Training Pipeline with PyTorch and stratified data subsets Setup
 - ✅ Completed Phase 6: Executed training, managed evaluation configurations optimally (best_model.pth generated)
-- ✅ Completed Phase 7: Evaluated test dataset indicating 75.5% testing accuracy
+- ✅ Completed Phase 7: Evaluated real-only holdout test dataset indicating 75.0% accuracy
 - ✅ Updated execution metrics across Summary, README, and Processing Logs
 - 🔄 Preparing for Phase 8: Visualization generation
 
@@ -378,7 +384,7 @@ All code is version-controlled on the `preprocess` branch. Collaborators can rep
 
 **Next Action:** Generate Training and Execution Data Metrics visuals for project reporting 
 **Timeline:** End goal review presentation
-**Final Status:** Operational exoplanet habitability classifier with **75.5% accuracy** and **0.96 HABITABLE F1-Score**.
+**Final Status:** Operational exoplanet habitability classifier with **75.0% holdout accuracy** and **0.5006 macro F1-score**.
 
 ---
 

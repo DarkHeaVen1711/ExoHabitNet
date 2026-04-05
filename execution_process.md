@@ -5,6 +5,18 @@
 
 ---
 
+## 📊 Results Snapshot
+
+**Latest Evaluation:**
+- **Holdout Test Accuracy:** 75.0%
+- **Macro F1-Score:** 0.5006
+- **Leakage Status:** real-only holdout split with train-only augmentation
+- **Best Model:** `models/checkpoints/best_model.pth`
+
+**Key Outcome:** The evaluation now reflects untouched real data rather than an augmented mixed split.
+
+---
+
 ## 📊 Slide 1: Problem Statement & Approach
 
 **Problem:** Authenticating and classifying exoplanet candidates from false positives using raw transit data.
@@ -41,7 +53,7 @@
 - ✅ **Phase 4:** Model Architecture Design (1D-CNN backbone created)
 - ✅ **Phase 5:** Training Pipeline Setup (Train script with PyTorch and TensorBoard created)
 - ✅ **Phase 6:** Model Training & Execution (Training loop generated best model checkpoint)
-- ✅ **Phase 7:** Metrics Validation & Benchmarking (75.0% holdout test accuracy achieved)
+- ✅ **Phase 7:** Metrics Validation & Benchmarking (75.0% holdout test accuracy, 0.5006 macro F1)
 
 **In Progress:**
 - 🔄 **Phase 8:** Visualization & Reporting
@@ -53,7 +65,7 @@
 - Created robust 1D-CNN architecture over 3 convolutional blocks
 - Built a stratified real-data split before augmentation to prevent leakage
 - Computed class weights from the final train split and trained with weighted loss
-- Achieved **75.0% holdout test accuracy** on real-only data
+- Achieved **75.0% holdout test accuracy** and **0.5006 macro F1** on real-only data
 - Generated model metrics successfully
 
 **Next Steps:**
