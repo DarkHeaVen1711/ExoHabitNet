@@ -11,7 +11,7 @@
 ### Current Project Status (April 2026)
 **✅ Phases Completed:** 1-7 (Environment Setup → Preprocessing → Model Training → Evaluation)  
 **🔄 Next Phase:** Phase 8 (Visualization & Reporting) and Model Optimization  
-**📊 Dataset Ready:** 653 balanced samples (200 HABITABLE / 222 NON_HABITABLE / 231 FALSE_POSITIVE)
+**📊 Dataset Ready:** real-only holdout split plus train-only augmentation for leak-safe evaluation
 
 **See [`execution_process.md`](execution_process.md) for detailed progress tracking.**
 
@@ -52,11 +52,11 @@ python scripts/collect_kepler_data.py
 
 ### 4. Preprocess Data (Already Executed)
 ```bash
-# Clean, normalize, phase-fold, and augment light curves
+# Clean, normalize, phase-fold, split, and augment only the training split
 python scripts/preprocessing_pipeline.py
 ```
 
-**Output:** `data/processed_dataset.csv` — 653 samples ready for model training
+**Output:** `data/processed_dataset.csv`, `data/train_dataset.csv`, `data/test_dataset.csv`
 
 ---
 
@@ -82,9 +82,10 @@ Authenticate and classify exoplanet candidates from false positives using raw tr
 - **Normalization:** Z-score normalization for CNN input
 - **Phase Folding:** All transits aligned using Kepler's Third Law
 - **Binning:** Fixed 1024-timestep sequences for uniform CNN input
-- **Augmentation:** HABITABLE class 7→200 samples (28.6x oversampling)
-- **Final Dataset:** 653 balanced samples (30.6% / 34.0% / 35.4%)
-- **Class Weights:** [1.0883, 0.9805, 0.9423] computed for PyTorch training
+- **Splitting:** Real samples are split before augmentation to prevent leakage
+- **Augmentation:** HABITABLE class is generated only from the training split
+- **Final Outputs:** `processed_dataset.csv`, `train_dataset.csv`, `test_dataset.csv`
+- **Class Weights:** Computed dynamically from the final train split
 
 #### ✅ Phase 4: Model Architecture Development
 - Developed PyTorch `ExoHabitNetCNN` model
@@ -92,19 +93,19 @@ Authenticate and classify exoplanet candidates from false positives using raw tr
 - Global Average Pooling into a 3-class linear classifier
 
 #### ✅ Phase 5: Training Pipeline
-- Created a robust stratified data splitting mechanism (Train/Val/Test)
+- Created a robust stratified data splitting mechanism (Train/Val)
 - Overcame class imbalance with weighted CrossEntropyLoss
 - Implemented LR Scheduling (ReduceLROnPlateau) and Early Stopping
 
 #### ✅ Phase 6: Model Training
-- Trained on balanced 653 samples
+- Trained on the leak-safe augmented training split
 - Saved checkpoints for the best validation macro F1-score model
 - Maintained detailed TensorBoard logs of performance 
 
 #### ✅ Phase 7: Model Evaluation
-- Test accuracy of **75.5%** achieved.
-- Exceeded Habitable F1-Score targets reaching **0.96**.
-- Achieved **0.72** Macro F1-Score indicating robust handling of classes.
+- Holdout test accuracy of **75.0%** achieved on real-only data.
+- Macro F1-Score of **0.5006** on the holdout test split.
+- The earlier 100% accuracy leakage issue was removed.
 
 **Result:** `models/checkpoints/best_model.pth` ready and detailed metrics saved to `reports/model_performance.json`.
 
@@ -120,9 +121,9 @@ MAST API Query (lightkurve)
         ↓
 Raw FITS Light Curves (500+ samples)
         ↓
-Preprocessing (clean → normalize → phase-fold)
+Preprocessing (clean → normalize → phase-fold → real-only split)
         ↓
-Class Balancing (SMOTE + augmentation)
+Train-only augmentation (SMOTE-like oversampling, noise, time shift)
         ↓
 1D-CNN Model Training
         ↓
@@ -217,13 +218,13 @@ python scripts/preprocessing_pipeline.py
 python scripts/balance_dataset.py --strategy moderate
 
 # Output:
-# - data/balanced_dataset.csv (ready for training)
+# - data/train_dataset.csv and data/test_dataset.csv from the split-safe pipeline
 ```
 
 ### Step 4: Model Training (Future)
 ```bash
 # Train 1D-CNN model
-python scripts/train.py --data data/balanced_dataset.csv
+python scripts/train.py
 
 # Evaluate
 python scripts/evaluate.py
@@ -236,8 +237,8 @@ python scripts/evaluate.py
 ### Class Imbalance Solution
 The dataset has severe imbalance (HABITABLE ~1.5%). We solve this with:
 1. **Relaxed HZ criteria** to collect more HABITABLE samples
-2. **Advanced augmentation** (SMOTE, noise injection, time shifting)
-3. **Class-weighted loss** during training
+2. **Train-only augmentation** after a stratified real-data split
+3. **Class-weighted loss** computed from the final train split
 
 See [`docs/class_imbalance_solutions.md`](exohabitnet/docs/class_imbalance_solutions.md) for details.
 
@@ -246,12 +247,13 @@ See [`docs/class_imbalance_solutions.md`](exohabitnet/docs/class_imbalance_solut
 - **Normalization:** Z-score (local) and min-max (global) methods
 - **Phase Folding:** Align transit events using Kepler's Third Law
 - **Binning:** Fixed 1024-timestep sequences for CNN input
+- **Splitting:** Real samples are split into train/test before any synthetic generation
 
 ### Data Augmentation
-- Gaussian noise injection (σ=0.012)
-- Circular time shifting (±50 timesteps)
-- SMOTE-like interpolation between real samples
-- Amplitude scaling (±3%)
+- Gaussian noise injection on training samples only
+- Circular time shifting on training samples only
+- SMOTE-like interpolation between real training samples
+- Amplitude scaling used sparingly on the training split
 
 ---
 
@@ -321,10 +323,10 @@ pip install --upgrade lightkurve astropy pandas numpy
 
 | Metric | Target | Notes |
 |--------|--------|-------|
-| Overall Accuracy | ≥ 75% | Target Achieved (75.5%) |
-| HABITABLE F1 | ≥ 0.65 | Target Achieved (0.96) |
-| FALSE_POSITIVE Precision | ≥ 0.80 | Model Achieved (0.75, requires tuning) |
-| Macro F1 | ≥ 0.70 | Target Achieved (0.72) |
+| Overall Accuracy | ≥ 75% | Current holdout result: 75.0% |
+| HABITABLE F1 | ≥ 0.65 | Holdout split has only 1 HABITABLE sample, so this metric is unstable |
+| FALSE_POSITIVE Precision | ≥ 0.80 | Model Achieved (0.7529 on current holdout) |
+| Macro F1 | ≥ 0.70 | Current holdout result: 0.5006 |
 
 ---
 

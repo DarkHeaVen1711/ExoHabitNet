@@ -217,6 +217,8 @@ exohabitnet/data/raw_fits/
 exohabitnet/data/processed/
 exohabitnet/data/processed_dataset.csv
 exohabitnet/data/balanced_dataset.csv
+exohabitnet/data/train_dataset.csv
+exohabitnet/data/test_dataset.csv
 
 # Collection logs (generated during data collection)
 exohabitnet/data/data_collection_log.csv
@@ -224,6 +226,7 @@ exohabitnet/data/logs/
 
 # Generated reports and charts
 exohabitnet/reports/
+reports/
 
 # Model checkpoints and trained weights
 exohabitnet/models/checkpoints/

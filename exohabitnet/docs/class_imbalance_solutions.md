@@ -49,8 +49,9 @@ python scripts/collect_kepler_data.py
 ### 🎯 Solution 2: Advanced Data Augmentation (Quick Fix)
 
 **Changes made to `preprocessing_pipeline.py`:**
-- ✅ Increased augmentation target from 150 to **200** samples
-- ✅ Increased noise level from 0.008 to **0.012** (more diversity)
+- ✅ Split real samples into train/test before any augmentation
+- ✅ Applied augmentation only to the training split
+- ✅ Kept the test split real-only to prevent leakage
 
 **New script: `balance_dataset.py`**
 
@@ -148,9 +149,10 @@ python scripts/preprocessing_pipeline.py
 # This will:
 # - Clean and normalize all light curves
 # - Phase-fold transit events
-# - Augment HABITABLE class to 200 samples
+# - Split real samples into train/test first
+# - Augment HABITABLE class only in the train split
 # - Generate EDA charts
-# - Output: data/processed_dataset.csv
+# - Output: data/processed_dataset.csv, data/train_dataset.csv, data/test_dataset.csv
 ```
 
 ---
@@ -220,6 +222,8 @@ print(classification_report(y_true, y_pred,
 - ✅ FALSE_POSITIVE F1 ≥ **0.80**
 - ✅ Macro F1 ≥ **0.70**
 
+**Current pipeline note:** the holdout test split is real-only and very small for HABITABLE, so that class's test F1 can be unstable even when the pipeline is behaving correctly.
+
 ### 3. Confusion Matrix Analysis
 ```python
 from sklearn.metrics import confusion_matrix
@@ -269,8 +273,10 @@ Check if augmented samples are distinguishable from real samples (should not be)
 ```
 exohabitnet/
 ├── data/
-│   ├── processed_dataset.csv          # After preprocessing (with basic augmentation)
-│   ├── balanced_dataset.csv           # After balance_dataset.py (production-ready)
+│   ├── processed_dataset.csv          # Real-only preprocessed samples
+│   ├── train_dataset.csv              # Train split with synthetic HABITABLE samples
+│   ├── test_dataset.csv               # Real-only holdout test split
+│   ├── balanced_dataset.csv           # Legacy/optional advanced balancing output
 │   └── raw_fits/
 │       ├── HABITABLE/       # 7 → 15-30 after re-collection
 │       ├── NON_HABITABLE/   # ~229 samples
@@ -303,10 +309,10 @@ python scripts/preprocessing_pipeline.py
 python scripts/balance_dataset.py --strategy moderate
 
 # Step 4: Train model
-python scripts/train.py --data data/balanced_dataset.csv --use-class-weights
+python scripts/train.py
 
 # Step 5: Evaluate with proper metrics
-python scripts/evaluate.py --metric f1_macro
+python scripts/evaluate.py
 ```
 
 ---
@@ -322,6 +328,12 @@ python scripts/evaluate.py --metric f1_macro
 - Training: Balanced loss across all classes
 - HABITABLE recall: **60-70%** (successfully learns minority class)
 - Validation F1-macro: **0.70-0.75** (all classes learned properly)
+
+### Current Leak-Safe Pipeline
+- Training: train-only augmentation with real-only holdout evaluation
+- Holdout accuracy: **75.0%**
+- Macro F1: **0.5006** on the current real-only test split
+- HABITABLE test metrics: unstable because only one real HABITABLE sample exists in the holdout split
 
 ---
 

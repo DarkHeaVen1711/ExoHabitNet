@@ -102,6 +102,20 @@ Step 4: Save raw .fits artifacts + metadata CSV
 Step 5: Hand off to Preprocessing Pipeline (Phase 3)
 ```
 
+## Task 1D: Leakage-Safe Split Policy
+
+The current pipeline splits real preprocessed samples into train and test sets before any synthetic augmentation is created.
+
+### Policy
+- Real samples are split with stratified sampling.
+- Synthetic HABITABLE samples are generated only from the training split.
+- The test split remains real-only to preserve a meaningful holdout evaluation.
+
+### Output Artifacts
+- `data/processed_dataset.csv` — real-only preprocessed samples
+- `data/train_dataset.csv` — training split with synthetic augmentation
+- `data/test_dataset.csv` — real-only holdout split
+
 ### Why `.fits` Files?
 FITS (Flexible Image Transport System) files from MAST contain:
 - `TIME` column (BJD - 2454833)

@@ -51,3 +51,9 @@ python scripts/preprocessing_pipeline.py
 - **API:** NASA MAST via `lightkurve`
 - **Metadata:** NASA Exoplanet Archive KOI Cumulative Table (TAP/ADQL)
 - **HZ Model:** Kopparapu et al. (2013)
+
+## Current Workflow Notes
+- Preprocessing now splits real samples into train/test before any augmentation is applied.
+- Synthetic samples are generated only from the training split.
+- The test split remains real-only to keep evaluation honest and avoid inflated accuracy.
+- Generated files are `data/processed_dataset.csv`, `data/train_dataset.csv`, and `data/test_dataset.csv`.

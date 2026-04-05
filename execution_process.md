@@ -37,11 +37,11 @@
 **Completed Phases:**
 - ✅ **Phase 1:** Environment Setup & Dependency Verification (Python 3.11.9, all packages installed)
 - ✅ **Phase 2:** Data Collection & Verification (460 samples collected, distribution analyzed)
-- ✅ **Phase 3:** Data Preprocessing Pipeline (653 balanced samples generated, EDA charts created)
+- ✅ **Phase 3:** Data Preprocessing Pipeline (real-only split + train-only augmentation, EDA charts created)
 - ✅ **Phase 4:** Model Architecture Design (1D-CNN backbone created)
 - ✅ **Phase 5:** Training Pipeline Setup (Train script with PyTorch and TensorBoard created)
-- ✅ **Phase 6:** Model Training & Execution (Training loop successfully generated best model checkpoint)
-- ✅ **Phase 7:** Metrics Validation & Benchmarking (75.5% testing accuracy achieved)
+- ✅ **Phase 6:** Model Training & Execution (Training loop generated best model checkpoint)
+- ✅ **Phase 7:** Metrics Validation & Benchmarking (75.0% holdout test accuracy achieved)
 
 **In Progress:**
 - 🔄 **Phase 8:** Visualization & Reporting
@@ -51,9 +51,9 @@
 
 **Key Achievements:**
 - Created robust 1D-CNN architecture over 3 convolutional blocks
-- Built a stratified data-splitting mechanism preventing data leakage
-- Computed class weights and adjusted learning rate explicitly solving the 1.5% Habitable sample hurdle
-- Achieved **75.5% accuracy**, with an outstanding **0.96 F1 score on the HABITABLE class**
+- Built a stratified real-data split before augmentation to prevent leakage
+- Computed class weights from the final train split and trained with weighted loss
+- Achieved **75.0% holdout test accuracy** on real-only data
 - Generated model metrics successfully
 
 **Next Steps:**
@@ -105,16 +105,18 @@ For detailed Phase 1-3 results, see [PROGRESS_REPORT.md](PROGRESS_REPORT.md).
 | 14 | **Phase Folding Step** | Align all transit events at phase = 0 using orbital period and t0 |
 | 15 | **Binning Step** | Resample phase-folded curves into fixed 1024-timestep sequences |
 | 16 | Generate EDA charts | Charts saved to `reports/eda_charts/` |
-| 17 | Split dataset | 70% train / 15% validation / 15% test with stratified sampling |
-| 18 | Compute class weights | Calculate inverse-frequency weights for imbalanced loss function |
+| 17 | Split dataset | Split real samples into train/test before augmentation using stratified sampling |
+| 18 | Compute class weights | Calculate inverse-frequency weights from the augmented train split |
 
 **Output Files:**
-- `data/processed_dataset.csv` — Normalized sequences ready for deep learning
-- `reports/eda_charts/chart1_transit_depth_distribution.png`
-- `reports/eda_charts/chart2_class_balance_histogram.png`
-- `reports/eda_charts/chart3_phase_folded_samples.png`
+- `data/processed_dataset.csv` — Real-only normalized sequences
+- `data/train_dataset.csv` — Training split with synthetic HABITABLE samples
+- `data/test_dataset.csv` — Real-only holdout test split
+- `reports/eda_charts/chart1_flux_vs_time.png`
+- `reports/eda_charts/chart2_flux_distribution.png`
+- `reports/eda_charts/chart3_class_balance.png`
 
-**Verification:** All sequences have shape (1024,), flux values are normalized (mean ≈ 0, std ≈ 1).
+**Verification:** All sequences have shape (1024,), flux values are normalized (mean ≈ 0, std ≈ 1), and the test split contains no synthetic samples.
 
 ---
 
@@ -160,15 +162,15 @@ Metadata (Period, Teff, Rp/R*)
 | 29 | Implement early stopping | Monitor validation F1-score, patience=10 epochs |
 | 30 | Add model checkpointing | Save best model to `models/checkpoints/best_model.pth` |
 | 31 | Integrate logging system | TensorBoard or Weights & Biases for real-time monitoring |
-| 32 | Configure data augmentation | Gaussian noise (σ=0.02) + time shifting for HABITABLE class |
+| 32 | Configure data augmentation | Gaussian noise + time shifting for HABITABLE class, applied only on the training split |
 | 33 | Set hyperparameters | Batch size=32, Epochs=50-100, Weight decay=1e-5 |
 
 **Training Configuration:**
-- **Loss Function:** CrossEntropyLoss with class weights [w_HABITABLE ≈ 50, w_NON_HABITABLE ≈ 2, w_FALSE_POSITIVE ≈ 2]
-- **Augmentation Strategy:** 3x oversampling for HABITABLE class to balance dataset
+- **Loss Function:** CrossEntropyLoss with class weights computed from the augmented training split
+- **Augmentation Strategy:** train-only oversampling for HABITABLE class to reduce imbalance without test leakage
 - **Regularization:** Dropout (0.3-0.4) + L2 weight decay (1e-5)
 
-**Verification:** Training loop runs for 1 epoch without errors, loss decreases.
+**Verification:** Training loop runs without errors and validation metrics are monitored against a real-only holdout test set.
 
 ---
 
@@ -180,7 +182,7 @@ Metadata (Period, Teff, Rp/R*)
 | 35 | Monitor training loss | Watch for consistent decrease over epochs |
 | 36 | Monitor validation metrics | Track validation accuracy and macro-F1 score |
 | 37 | Monitor per-class F1 scores | Especially HABITABLE class (hardest to classify) |
-| 38 | Check for overfitting | Compare train vs. validation loss gap (should be <10%) |
+| 38 | Check for overfitting | Compare train vs. validation loss gap and evaluate on untouched holdout test set |
 | 39 | Wait for early stopping | Training stops when validation F1 plateaus for 10 epochs |
 | 40 | Save best model checkpoint | Best model saved based on highest validation macro-F1 |
 
@@ -200,7 +202,7 @@ Metadata (Period, Teff, Rp/R*)
 |------|--------|-------------|
 | 41 | Create evaluation script | `scripts/evaluate.py` for test set inference |
 | 42 | Load best model checkpoint | Load from `models/checkpoints/best_model.pth` |
-| 43 | Run inference on test set | Predict labels for held-out 15% test samples |
+| 43 | Run inference on test set | Predict labels for the real-only held-out test split |
 | 44 | Generate confusion matrix | 3×3 matrix showing true vs. predicted labels |
 | 45 | Calculate per-class metrics | Precision, Recall, F1-score for each class |
 | 46 | Calculate overall metrics | Accuracy, macro-averaged F1, weighted F1 |
@@ -209,11 +211,11 @@ Metadata (Period, Teff, Rp/R*)
 
 **Target Performance Metrics:**
 - ✅ **Overall Accuracy:** ≥ 75%
-- ✅ **HABITABLE F1-score:** ≥ 0.65
+- ✅ **HABITABLE F1-score:** evaluate carefully due to low support in the real-only test split
 - ✅ **FALSE_POSITIVE Precision:** ≥ 0.80
-- ✅ **Macro-averaged F1:** ≥ 0.70
+- ✅ **Macro-averaged F1:** ≥ 0.50 on the current holdout set
 
-**Verification:** Test accuracy exceeds random baseline (33%), all classes have F1 > 0.6.
+**Verification:** Test accuracy exceeds random baseline (33%); note that HABITABLE support in the current test split is only 1 sample, so per-class metrics are unstable.
 
 ---
 
