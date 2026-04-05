@@ -16,7 +16,6 @@ import torch.nn.functional as F
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 # Ensure imports work from project root
@@ -26,7 +25,7 @@ from models.cnn_model import ExoHabitNetCNN
 from utils.visualization import plot_confusion_matrix, plot_roc_curves, plot_sample_predictions
 
 # ── CONFIGURATION ─────────────────────────────────────────────────────────────
-DATA_PATH = Path("data/balanced_dataset.csv")
+TEST_DATA_PATH = Path("data/test_dataset.csv")
 MODEL_PATH = Path("models/checkpoints/best_model.pth")
 REPORTS_DIR = Path("reports")
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -37,22 +36,19 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def evaluate_model():
     print(f"Using device: {device}")
-    print(f"Loading data from {DATA_PATH}...")
-    if not DATA_PATH.exists():
-        print("ERROR: balanced_dataset.csv not found!")
+    print(f"Loading test data from {TEST_DATA_PATH}...")
+    if not TEST_DATA_PATH.exists():
+        print("ERROR: test_dataset.csv not found! Run preprocessing_pipeline.py first.")
         sys.exit(1)
         
-    df = pd.read_csv(DATA_PATH)
+    df = pd.read_csv(TEST_DATA_PATH)
     flux_cols = [c for c in df.columns if c.startswith('flux_')]
     X = df[flux_cols].values
     y = df['label_id'].values
-    
-    # EXACT same split as `train.py` (Isolate the 15% Test Split)
-    _, X_test, _, y_test = train_test_split(
-        X, y, test_size=0.15, stratify=y, random_state=RANDOM_STATE
-    )
-    
-    print(f"Isolated EXACT test set: {len(X_test)} unseen samples.")
+
+    X_test = X
+    y_test = y
+    print(f"Loaded holdout test set: {len(X_test)} unseen real samples.")
     
     # 2. Format as tensors
     X_test_tensor = torch.tensor(X_test, dtype=torch.float32).unsqueeze(1).to(device)

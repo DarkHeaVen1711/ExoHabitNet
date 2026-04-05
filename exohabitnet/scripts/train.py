@@ -31,7 +31,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from models.cnn_model import ExoHabitNetCNN
 
 # ── CONFIGURATION ─────────────────────────────────────────────────────────────
-DATA_PATH = Path("data/balanced_dataset.csv")
+TRAIN_DATA_PATH = Path("data/train_dataset.csv")
 CHECKPOINT_DIR = Path("models/checkpoints")
 CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR = Path("runs/exohabitnet_experiment")
@@ -42,9 +42,6 @@ LEARNING_RATE = 0.001
 WEIGHT_DECAY = 1e-5
 PATIENCE = 10
 RANDOM_STATE = 42
-
-# We calculated these weights in Phase 3 balance_dataset.py AGGRESSIVE strategy
-CLASS_WEIGHTS = [0.8667, 1.0833, 1.0833]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -65,29 +62,24 @@ def train_model():
     print(f"Using device: {device}")
     
     # 1. Load Data
-    print(f"Loading dataset from {DATA_PATH}...")
-    if not DATA_PATH.exists():
-        print(f"ERROR: Dataset not found at {DATA_PATH}. Run Phase 3 first.")
+    print(f"Loading training dataset from {TRAIN_DATA_PATH}...")
+    if not TRAIN_DATA_PATH.exists():
+        print(f"ERROR: Dataset not found at {TRAIN_DATA_PATH}. Run preprocessing_pipeline.py first.")
         sys.exit(1)
         
-    df = pd.read_csv(DATA_PATH)
+    df = pd.read_csv(TRAIN_DATA_PATH)
     
     # Extract features and labels
     flux_cols = [c for c in df.columns if c.startswith('flux_')]
     X = df[flux_cols].values
     y = df['label_id'].values
     
-    # 2. Stratified Split (70% Train, 15% Val, 15% Test)
-    # First split to get Train/Val and Test
-    X_train_val, X_test, y_train_val, y_test = train_test_split(
-        X, y, test_size=0.15, stratify=y, random_state=RANDOM_STATE
-    )
-    # Then split Train/Val into Train and Val (0.1765 of 85% is ~15%)
+    # 2. Stratified Split (Train dataset -> Train/Val)
     X_train, X_val, y_train, y_val = train_test_split(
-        X_train_val, y_train_val, test_size=0.1765, stratify=y_train_val, random_state=RANDOM_STATE
-    ) 
+        X, y, test_size=0.2, stratify=y, random_state=RANDOM_STATE
+    )
     
-    print(f"Dataset split sizes - Train: {len(X_train)}, Val: {len(X_val)}, Test: {len(X_test)}")
+    print(f"Dataset split sizes - Train: {len(X_train)}, Val: {len(X_val)}")
     
     # Dataloaders
     train_loader = DataLoader(KeplerFluxDataset(X_train, y_train), batch_size=BATCH_SIZE, shuffle=True)
@@ -95,8 +87,12 @@ def train_model():
     
     # 3. Model, Loss, Optimizer
     model = ExoHabitNetCNN().to(device)
-    
-    weights = torch.tensor(CLASS_WEIGHTS, dtype=torch.float32).to(device)
+
+    class_counts = np.bincount(y_train, minlength=3)
+    total = class_counts.sum()
+    class_weights = [total / (3 * max(c, 1)) for c in class_counts]
+    weights = torch.tensor(class_weights, dtype=torch.float32).to(device)
+    print(f"Class weights (from train split): {[round(w, 4) for w in class_weights]}")
     criterion = nn.CrossEntropyLoss(weight=weights)
     
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)

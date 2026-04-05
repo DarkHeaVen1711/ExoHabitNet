@@ -21,6 +21,7 @@ import seaborn as sns
 from pathlib import Path
 from scipy import stats
 from astropy.io import fits
+from sklearn.model_selection import train_test_split
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURATION
@@ -30,6 +31,8 @@ PROCESSED_DIR         = Path("data/processed")
 EDA_CHARTS_DIR        = Path("reports/eda_charts")
 COLLECTION_LOG        = Path("data/data_collection_log.csv")
 PROCESSED_OUT_CSV     = Path("data/processed_dataset.csv")
+TRAIN_OUT_CSV         = Path("data/train_dataset.csv")
+TEST_OUT_CSV          = Path("data/test_dataset.csv")
 
 SEQUENCE_LENGTH       = 1024        # Fixed time-series length for DL model input
 OUTLIER_SIGMA         = 5.0         # σ-clip threshold for outlier removal
@@ -248,7 +251,7 @@ def preprocess_single(fits_path: str, period: float, t0: float, label: str) -> d
 # ─────────────────────────────────────────────────────────────────────────────
 def augment_habitable_class(
     processed_results: list,
-    target_count: int = 150,
+    target_count: int = 100,
     noise_level: float = 0.008,
     rng_seed: int = 42
 ) -> list:
@@ -310,6 +313,45 @@ def augment_habitable_class(
             counts[r["label"]] = counts.get(r["label"], 0) + 1
     print(f"  Post-augmentation class counts: {counts}")
     return result
+
+
+def split_real_dataset(
+    processed_results: list,
+    test_size: float = 0.2,
+    rng_seed: int = 42
+) -> tuple[list, list]:
+    """
+    Split ONLY real preprocessed samples into stratified train/test sets.
+
+    This prevents augmented variants of the same source signal from leaking
+    into both train and test sets.
+    """
+    clean_rows = [r for r in processed_results if r]
+    if not clean_rows:
+        return [], []
+
+    labels = [r["label_id"] for r in clean_rows]
+    train_rows, test_rows = train_test_split(
+        clean_rows,
+        test_size=test_size,
+        stratify=labels,
+        random_state=rng_seed
+    )
+    return train_rows, test_rows
+
+
+def _to_dataframe(rows: list) -> pd.DataFrame:
+    """Convert list of processed rows to tabular dataframe format."""
+    return pd.DataFrame([
+        {
+            "label": r["label"],
+            "label_id": r["label_id"],
+            "is_augmented": r.get("is_augmented", False),
+            "fits_path": r["fits_path"],
+            **{f"flux_{i}": v for i, v in enumerate(r["flux_sequence"])}
+        }
+        for r in rows if r
+    ])
 
 
 def compute_class_weights(processed_results: list) -> dict:
@@ -509,32 +551,53 @@ def main():
 
     print(f"\n  Preprocessed {len(processed_results)}/{len(success_df)} samples successfully.")
 
-    # ── Augment HABITABLE minority class ──────────────────────────────────
-    print("\n  Running data augmentation for minority class...")
-    processed_results = augment_habitable_class(
+    # ── Save full real (non-augmented) dataset ────────────────────────────
+    if processed_results:
+        real_df = _to_dataframe(processed_results)
+        real_df.to_csv(PROCESSED_OUT_CSV, index=False)
+        print(f"\n  Real processed dataset saved: {PROCESSED_OUT_CSV}")
+        print(f"    Shape: {real_df.shape[0]} samples x {real_df.shape[1]} columns")
+
+    # ── Split first, then augment ONLY train split ────────────────────────
+    print("\n  Creating stratified train/test split using real samples only...")
+    train_rows, test_rows = split_real_dataset(
         processed_results,
-        target_count=200,    # Aim for 200 HABITABLE samples total (increased from 150)
-        noise_level=0.012    # ~1.2% Gaussian noise (increased for more diversity)
+        test_size=0.2,
+        rng_seed=RANDOM_STATE
     )
 
-    # ── Compute class weights for DL training ─────────────────────────────
-    compute_class_weights(processed_results)
+    train_counts = pd.Series([r["label"] for r in train_rows]).value_counts().to_dict()
+    test_counts = pd.Series([r["label"] for r in test_rows]).value_counts().to_dict()
+    print(f"  Train split counts (real only): {train_counts}")
+    print(f"  Test split counts  (real only): {test_counts}")
 
-    # ── Save processed dataset ─────────────────────────────────────────────
-    if processed_results:
-        out_df = pd.DataFrame([
-            {"label":        r["label"],
-             "label_id":     r["label_id"],
-             "is_augmented": r.get("is_augmented", False),
-             "fits_path":    r["fits_path"],
-             **{f"flux_{i}": v for i, v in enumerate(r["flux_sequence"])}}
-            for r in processed_results if r
-        ])
-        out_df.to_csv(PROCESSED_OUT_CSV, index=False)
-        print(f"\n  Processed dataset saved: {PROCESSED_OUT_CSV}")
-        print(f"    Shape: {out_df.shape[0]} samples x {out_df.shape[1]} columns")
-        aug_count = out_df["is_augmented"].sum()
-        print(f"    Real samples: {len(out_df) - aug_count} | Augmented: {aug_count}")
+    print("\n  Running augmentation on TRAIN split only (prevents data leakage)...")
+    train_rows_aug = augment_habitable_class(
+        train_rows,
+        target_count=100,
+        noise_level=0.01,
+        rng_seed=RANDOM_STATE
+    )
+
+    # ── Compute class weights for DL training (train split only) ──────────
+    compute_class_weights(train_rows_aug)
+
+    # ── Save split datasets ────────────────────────────────────────────────
+    train_df = _to_dataframe(train_rows_aug)
+    test_df = _to_dataframe(test_rows)
+
+    train_df.to_csv(TRAIN_OUT_CSV, index=False)
+    test_df.to_csv(TEST_OUT_CSV, index=False)
+
+    print(f"\n  Train dataset saved: {TRAIN_OUT_CSV}")
+    print(f"    Shape: {train_df.shape[0]} samples x {train_df.shape[1]} columns")
+    train_aug_count = int(train_df["is_augmented"].sum())
+    print(f"    Real samples: {len(train_df) - train_aug_count} | Augmented: {train_aug_count}")
+
+    print(f"\n  Test dataset saved: {TEST_OUT_CSV}")
+    print(f"    Shape: {test_df.shape[0]} samples x {test_df.shape[1]} columns")
+    test_aug_count = int(test_df["is_augmented"].sum())
+    print(f"    Real samples: {len(test_df) - test_aug_count} | Augmented: {test_aug_count}")
 
     # ── Generate EDA charts ────────────────────────────────────────────────
     print("\n  Generating EDA charts...")
