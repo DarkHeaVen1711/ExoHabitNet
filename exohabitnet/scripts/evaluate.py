@@ -59,9 +59,13 @@ def evaluate_model():
     if not MODEL_PATH.exists():
         print(f"ERROR: No trained model checkpoint found at {MODEL_PATH}!")
         sys.exit(1)
-        
-    # Since model parameters map directly, we use load_state_dict with weights_only=True
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=device, weights_only=True))
+
+    # Load checkpoint (supports plain state_dict or wrapped checkpoint dicts)
+    state = torch.load(MODEL_PATH, map_location=device)
+    # If checkpoint is a dict with common wrapper keys, extract the nested state
+    if isinstance(state, dict) and ('model_state_dict' in state or 'state_dict' in state):
+        state = state.get('model_state_dict', state.get('state_dict'))
+    model.load_state_dict(state)
     model.eval()
     
     print(f"Loaded trained checkpoint from {MODEL_PATH}.")

@@ -1,6 +1,8 @@
 # ExoHabitNet Progress Report
 **Phases 1-7 Execution Summary**
 
+**Combined report:** `reports/combined_report.md` — consolidated metrics and reproduction commands
+
 > **Date:** April 02, 2026  
 > **Branch:** preprocess  
 > **Status:** ✅ Phases 1-7 Complete

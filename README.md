@@ -8,13 +8,14 @@
 
 ## 📊 Results Snapshot
 
-**Latest Evaluation:**
-- **Holdout Test Accuracy:** 75.0%
-- **Macro F1-Score:** 0.5006
-- **Best Model:** `models/checkpoints/best_model.pth`
-- **Leakage Status:** real-only holdout split with train-only augmentation
+See the consolidated evaluation in `exohabitnet/reports/combined_report.md` for the full set of experiments (holdout, k-fold, LOOCV, targeted HAB checks).
 
-**Key Outcome:** The model now evaluates on untouched real data after the leakage issue was removed.
+**Latest authoritative holdout (see combined report):**
+- **Overall accuracy:** 0.6708
+- **Macro F1:** 0.4404
+- **Best Model:** `models/checkpoints/best_model.pth`
+
+Note: Multiple evaluation artifacts exist (LOOCV, short k-fold runs, and full holdout). Because the HAB class is extremely small in the holdout, per-class HAB metrics can be unstable — use the combined report to inspect variance across runs.
 
 ---
 
@@ -69,6 +70,16 @@ python scripts/preprocessing_pipeline.py
 ```
 
 **Output:** `data/processed_dataset.csv`, `data/train_dataset.csv`, `data/test_dataset.csv`
+
+### Optional: Encoder Pretraining (integrated)
+The training script can optionally run a short supervised pretraining of the CNN encoder
+on the training split before the main training run. This improves the encoder initialization
+when HAB is scarce.
+
+```bash
+# Run encoder pretraining for 10 epochs, then train normally
+python scripts/train.py --pretrain --pretrain-epochs 10
+```
 
 ---
 

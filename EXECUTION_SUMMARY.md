@@ -9,13 +9,13 @@
 
 ## 📊 Results Snapshot
 
-The project has successfully trained and evaluated the model, proving the hypothesis with strong predictive metrics.
+The project has successfully trained and evaluated the model; a consolidated view of all experiments and artifacts is available in `exohabitnet/reports/combined_report.md`.
 
 **Quick Stats:**
 - ✅ 460 exoplanet light curves collected and generated 653 balanced samples.
 - ✅ Successfully developed a robust 1D-CNN using PyTorch.
 - ✅ Established a stratified training pipeline to address the class imbalance problem.
-- ✅ Holdout test accuracy reached **75.0%** on real-only data with a **0.5006 macro F1-score**.
+- ✅ Latest authoritative holdout metrics (see combined report): **Overall accuracy: 0.6708**, **Macro F1: 0.4404** (holdout HAB support=2, unstable)
 - 🔄 Next: Phase 8 - Visualization & Reporting
 
 ---

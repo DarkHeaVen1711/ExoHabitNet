@@ -317,7 +317,7 @@ def augment_habitable_class(
 
 def split_real_dataset(
     processed_results: list,
-    test_size: float = 0.2,
+    test_size: float = 0.35,
     rng_seed: int = 42
 ) -> tuple[list, list]:
     """
@@ -562,7 +562,7 @@ def main():
     print("\n  Creating stratified train/test split using real samples only...")
     train_rows, test_rows = split_real_dataset(
         processed_results,
-        test_size=0.2,
+        test_size=0.35,
         rng_seed=RANDOM_STATE
     )
 
@@ -572,9 +572,14 @@ def main():
     print(f"  Test split counts  (real only): {test_counts}")
 
     print("\n  Running augmentation on TRAIN split only (prevents data leakage)...")
+    # Determine a safer dynamic augmentation target based on real HAB samples in train
+    n_hab_train = sum(1 for r in train_rows if r["label"] == "HABITABLE")
+    # Rule: scale ~5x per real sample, but keep between 20 and 50 to avoid over-augmentation
+    target_count = min(50, max(20, n_hab_train * 5))
+    print(f"  Augmentation target: {target_count} (real HAB in train: {n_hab_train})")
     train_rows_aug = augment_habitable_class(
         train_rows,
-        target_count=100,
+        target_count=target_count,
         noise_level=0.01,
         rng_seed=RANDOM_STATE
     )
