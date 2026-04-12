@@ -201,6 +201,48 @@ ExoHabitNet/
 
 ---
 
+## 📦 Cleanup / Pruned Files
+
+To keep the handed-off copy concise, older experiment reports and run logs were pruned on 2026-04-12. See `exohabitnet/PRUNED_FILES.md` for the full list of removed files and the rationale. The canonical, recommended experiment artifacts (final checkpoints and summary reports) are retained.
+
+
+---
+
+## 🧭 Pipeline Diagram
+
+A machine-readable process diagram (Mermaid) of the repository data and script flow has been saved to:
+
+- `exohabitnet/reports/pipeline_diagram.mmd`
+
+You can preview or export the diagram locally using one of the options below:
+
+- VS Code: open the `.mmd` file and use the "Mermaid Preview" extension or the built-in Markdown preview for Mermaid content.
+- Mermaid CLI (recommended):
+
+```bash
+# install once (global) or use npx
+npm install -g @mermaid-js/mermaid-cli
+
+# render PNG
+mmdc -i exohabitnet/reports/pipeline_diagram.mmd -o exohabitnet/reports/pipeline_diagram.png
+
+# or with npx (no global install)
+npx @mermaid-js/mermaid-cli -i exohabitnet/reports/pipeline_diagram.mmd -o exohabitnet/reports/pipeline_diagram.png
+```
+
+If you prefer, open `exohabitnet/reports/pipeline_diagram.mmd` directly in the repo — the Mermaid markup follows the structure discussed in the project notes and links data → scripts → models → reports.
+
+## Model-Centric Workflow
+
+The CNN defined in `exohabitnet/models/cnn_model.py` is the core model in this project. Training and evaluation both instantiate and use this model directly:
+
+- **Training:** [exohabitnet/scripts/kfold_finetune.py](exohabitnet/scripts/kfold_finetune.py) instantiates `ExoHabitNetCNN`, trains it on the processed data, and saves per-fold checkpoints to `exohabitnet/models/checkpoints/kfold/`.
+- **Ensembling:** [exohabitnet/scripts/ensemble_checkpoints.py](exohabitnet/scripts/ensemble_checkpoints.py) averages per-fold state_dicts to produce `exohabitnet/models/checkpoints/best_model.pth`.
+- **Evaluation / Inference:** [exohabitnet/scripts/evaluate.py](exohabitnet/scripts/evaluate.py) and [exohabitnet/scripts/apply_calibrator_to_test.py](exohabitnet/scripts/apply_calibrator_to_test.py) instantiate `ExoHabitNetCNN`, load the chosen checkpoint (`best_model.pth` or per-fold checkpoints), and run inference to produce the final reports.
+
+This ensures the CNN is the single model backbone: all training routines optimize its weights, and all evaluation scripts load and use those trained weights for inference.
+
+
 ## 🔄 Workflow for Collaborators
 
 ### Step 1: Environment Setup
