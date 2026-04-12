@@ -186,7 +186,22 @@ def train_model(args):
     # Dataloaders
     # allow overriding batch size via CLI
     batch_size = getattr(args, 'batch_size', BATCH_SIZE)
-    train_loader = DataLoader(KeplerFluxDataset(X_train, y_train), batch_size=batch_size, shuffle=True)
+    # Optional: use a WeightedRandomSampler to oversample minority classes (HAB)
+    use_sampler = bool(getattr(args, 'use_weighted_sampler', False))
+    sampler_scale = float(getattr(args, 'sampler_scale', 1.0))
+    if use_sampler:
+        # per-sample weights = 1 / class_count[label]
+        class_counts = np.bincount(y_train, minlength=3)
+        sample_weights = np.array([1.0 / max(int(class_counts[int(lbl)]), 1) for lbl in y_train], dtype=np.float64)
+        # amplify HAB samples if requested (label_id == 0)
+        if sampler_scale != 1.0:
+            sample_weights = sample_weights * (np.where(y_train == 0, float(sampler_scale), 1.0))
+        sample_weights_t = torch.tensor(sample_weights, dtype=torch.double)
+        sampler = torch.utils.data.WeightedRandomSampler(weights=sample_weights_t, num_samples=len(sample_weights_t), replacement=True)
+        print(f"Using WeightedRandomSampler (sampler_scale={sampler_scale}) | sample_weights summary: min={sample_weights.min():.4f}, max={sample_weights.max():.4f}")
+        train_loader = DataLoader(KeplerFluxDataset(X_train, y_train), batch_size=batch_size, sampler=sampler)
+    else:
+        train_loader = DataLoader(KeplerFluxDataset(X_train, y_train), batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(KeplerFluxDataset(X_val, y_val), batch_size=batch_size, shuffle=False)
     
     # 3. Model, Loss, Optimizer
@@ -316,6 +331,8 @@ if __name__ == "__main__":
     parser.add_argument("--hab-weight-multiplier", type=float, default=1.0, help="Multiply HAB class weight by this factor")
     parser.add_argument("--epochs", type=int, default=EPOCHS, help="Number of training epochs")
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE, help="Batch size for training")
+    parser.add_argument("--use-weighted-sampler", action="store_true", help="Use WeightedRandomSampler to oversample classes in the training loader")
+    parser.add_argument("--sampler-scale", type=float, default=1.0, help="Multiplier applied to HAB sample weights when using the weighted sampler")
     args = parser.parse_args()
 
     if args.pretrain:

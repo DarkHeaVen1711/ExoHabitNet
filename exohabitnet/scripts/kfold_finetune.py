@@ -49,6 +49,12 @@ WEIGHT_DECAY = 1e-5
 RANDOM_STATE = 42
 NOISE_LEVEL = 0.01
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+USE_WEIGHTED_SAMPLER = False
+SAMPLER_SCALE = 1.0
+
+# Augmentation overrides (can be set via CLI)
+AUG_TARGET = None
+AUG_NOISE_LEVEL = None
 
 # Loss options (can be overridden via CLI args at runtime)
 LOSS_TYPE = 'ce'            # 'ce' or 'focal'
@@ -100,18 +106,34 @@ def compute_class_weights(y):
     return torch.tensor(weights, dtype=torch.float32)
 
 
-def train_one_fold(fold_id, X_train, y_train, X_val, y_val, init_weights_path=None):
+def train_one_fold(fold_id, X_train, y_train, X_val, y_val, init_weights_path=None, aug_target_override=None, aug_noise_override=None):
     print(f"\n=== Fold {fold_id+1} / {N_SPLITS} ===")
-    # Compute augmentation target based on HAB in this fold
+    # Compute augmentation target based on HAB in this fold (or use override)
     n_hab_train = int((y_train == 0).sum())
-    target_count = int(min(50, max(20, n_hab_train * 5)))
+    if aug_target_override is not None:
+        target_count = int(aug_target_override)
+    else:
+        target_count = int(min(50, max(20, n_hab_train * 5)))
     print(f"Train HAB (real): {n_hab_train} | Augmentation target: {target_count}")
 
-    X_tr_aug, y_tr_aug = augment_habitable(X_train, y_train, target_count=target_count)
+    # decide noise level (override or default)
+    noise_level = aug_noise_override if aug_noise_override is not None else NOISE_LEVEL
+    X_tr_aug, y_tr_aug = augment_habitable(X_train, y_train, target_count=target_count, noise_level=noise_level)
     print(f"After augmentation - Train shape: {X_tr_aug.shape} | HAB count: {(y_tr_aug==0).sum()}")
 
     # Dataloaders
-    train_loader = DataLoader(KeplerFluxDataset(X_tr_aug, y_tr_aug), batch_size=BATCH_SIZE, shuffle=True)
+    # Optionally use WeightedRandomSampler to oversample HAB class
+    if USE_WEIGHTED_SAMPLER:
+        class_counts = np.bincount(y_tr_aug, minlength=3)
+        sample_weights = np.array([1.0 / max(int(class_counts[int(lbl)]), 1) for lbl in y_tr_aug], dtype=np.float64)
+        if SAMPLER_SCALE != 1.0:
+            sample_weights = sample_weights * (np.where(y_tr_aug == 0, float(SAMPLER_SCALE), 1.0))
+        sample_weights_t = torch.tensor(sample_weights, dtype=torch.double)
+        sampler = torch.utils.data.WeightedRandomSampler(weights=sample_weights_t, num_samples=len(sample_weights_t), replacement=True)
+        print(f"[kfold] Using WeightedRandomSampler (scale={SAMPLER_SCALE}) | sample_weights min={sample_weights.min():.4f} max={sample_weights.max():.4f}")
+        train_loader = DataLoader(KeplerFluxDataset(X_tr_aug, y_tr_aug), batch_size=BATCH_SIZE, sampler=sampler)
+    else:
+        train_loader = DataLoader(KeplerFluxDataset(X_tr_aug, y_tr_aug), batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(KeplerFluxDataset(X_val, y_val), batch_size=BATCH_SIZE, shuffle=False)
 
     # Model
@@ -250,7 +272,6 @@ def main():
     for fold_id, (train_idx, val_idx) in enumerate(skf.split(X, y)):
         X_train, X_val = X[train_idx], X[val_idx]
         y_train, y_val = y[train_idx], y[val_idx]
-
         res = train_one_fold(
             fold_id,
             X_train,
@@ -258,6 +279,8 @@ def main():
             X_val,
             y_val,
             init_weights_path=PRETRAIN_PATH if PRETRAIN_PATH.exists() else None,
+            aug_target_override=AUG_TARGET,
+            aug_noise_override=AUG_NOISE_LEVEL,
         )
         fold_results.append(res)
 
@@ -293,6 +316,10 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=EPOCHS, help='Epochs per fold')
     parser.add_argument('--n-splits', type=int, default=N_SPLITS, help='Number of StratifiedKFold splits')
     parser.add_argument('--batch-size', type=int, default=BATCH_SIZE, help='Batch size')
+    parser.add_argument('--use-weighted-sampler', action='store_true', help='Use WeightedRandomSampler to oversample classes in the training loader')
+    parser.add_argument('--sampler-scale', type=float, default=1.0, help='Multiplier applied to HAB sample weights when using the weighted sampler')
+    parser.add_argument('--aug-target', type=int, default=None, help='Override augmentation target_count per fold (int)')
+    parser.add_argument('--aug-noise-level', type=float, default=None, help='Override augmentation noise level (float)')
     args = parser.parse_args()
 
     # Override module-level settings from CLI
@@ -303,5 +330,9 @@ if __name__ == '__main__':
     EPOCHS = args.epochs
     N_SPLITS = args.n_splits
     BATCH_SIZE = args.batch_size
+    USE_WEIGHTED_SAMPLER = bool(args.use_weighted_sampler)
+    SAMPLER_SCALE = float(args.sampler_scale)
+    AUG_TARGET = args.aug_target
+    AUG_NOISE_LEVEL = args.aug_noise_level
 
     main()
