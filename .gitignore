@@ -244,3 +244,18 @@ exohabitnet/models/*.pkl
 # - exohabitnet/requirements.txt
 # - exohabitnet/README.md
 # - exohabitnet/data/data_collection_log_template.csv (template file)
+
+# Re-include canonical handoff artifacts (allow pushing these files)
+!exohabitnet/models/checkpoints/best_model.pth
+!exohabitnet/models/checkpoints/best_ensemble.pth
+!exohabitnet/models/checkpoints/kfold/fold_*.pth
+!exohabitnet/reports/classification_report.md
+!exohabitnet/reports/model_performance.json
+!exohabitnet/reports/oof_probs.npy
+!exohabitnet/reports/oof_labels.npy
+!exohabitnet/reports/oof_calibration_results.json
+!exohabitnet/reports/test_calibrated_results.json
+!exohabitnet/reports/pipeline_diagram_highres.png
+!exohabitnet/reports/pipeline_diagram.svg
+!exohabitnet/PRUNED_FILES.md
+!exohabitnet/HANDOFF_SUMMARY.md
