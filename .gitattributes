@@ -1,0 +1,5 @@
+# Git LFS rules: track FITS files
+*.fits filter=lfs diff=lfs merge=lfs -text
+*.FITS filter=lfs diff=lfs merge=lfs -text
+*.fit filter=lfs diff=lfs merge=lfs -text
+*.FIT filter=lfs diff=lfs merge=lfs -text
